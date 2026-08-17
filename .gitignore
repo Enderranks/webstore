@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+dist/
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.zip
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db

@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum AllowanceTransactionType {
+  GRANT
+  BONUS
+  NEW_HIRE
+  MANUAL_ADJUSTMENT
+  ORDER_DEDUCTION
+  REFUND
+  EXPIRATION
+}
+
+enum OrderStatus {
+  ORDERED
+  CONFIRMED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Employee {
+  id                  String   @id @default(cuid())
+  employeeId          String   @unique
+  firstName           String
+  lastName            String
+  email               String   @unique
+  position            String?
+  level               String?
+  employmentStatus    EmploymentStatus @default(ACTIVE)
+  role                Role @default(EMPLOYEE)
+  hireDate            DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  teams               EmployeeTeam[]
+  departments         EmployeeDepartment[]
+  allowances          EmployeeAllowance[]
+  orders              EmployeeOrder[]
+  carts               Cart[]
+  auditLogs           AuditLog[] @relation("AuditEmployee")
+  allowanceChanges    AuditLog[] @relation("AuditSubject")
+}
+
+model Team {
+  id          String @id @default(cuid())
+  name        String @unique
+  handle      String @unique
+  createdAt   DateTime @default(now())
+  employees   EmployeeTeam[]
+  accessRules ProductAccessRule[]
+}
+
+model Department {
+  id          String @id @default(cuid())
+  name        String @unique
+  employees   EmployeeDepartment[]
+}
+
+model EmployeeTeam {
+  employeeId  String
+  teamId      String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  team        Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+  @@id([employeeId, teamId])
+}
+
+model EmployeeDepartment {
+  employeeId    String
+  departmentId  String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department    Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  @@id([employeeId, departmentId])
+}
+
+model EmployeeAllowance {
+  id          String @id @default(cuid())
+  employeeId  String
+  amountCents Int
+  usedCents   Int @default(0)
+  expiresAt   DateTime?
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  transactions AllowanceTransaction[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AllowanceTransaction {
+  id           String @id @default(cuid())
+  allowanceId  String
+  type         AllowanceTransactionType
+  amountCents  Int
+  referenceId  String?
+  note         String?
+  allowance    EmployeeAllowance @relation(fields: [allowanceId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  @@index([referenceId])
+}
+
+model ProductAccessRule {
+  id          String @id @default(cuid())
+  teamId      String?
+  collectionHandle String
+  accessType  String @default("TEAM_SPECIFIC")
+  team        Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  @@unique([teamId, collectionHandle])
+}
+
+model Cart {
+  id              String @id @default(cuid())
+  employeeId      String
+  fourthwallCartId String @unique
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model EmployeeOrder {
+  id                 String @id @default(cuid())
+  employeeId         String
+  fourthwallOrderId  String @unique
+  friendlyOrderId    String?
+  status             OrderStatus @default(ORDERED)
+  employeeEmail      String
+  subtotalCents      Int
+  discountCents      Int @default(0)
+  shippingCents      Int @default(0)
+  taxCents           Int @default(0)
+  totalCents         Int
+  allowanceUsedCents Int @default(0)
+  employeePaidCents  Int @default(0)
+  trackingNumber     String?
+  trackingUrl        String?
+  shippingAddress    Json?
+  orderDate          DateTime
+  employee           Employee @relation(fields: [employeeId], references: [id])
+  items              EmployeeOrderItem[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@index([employeeId, orderDate])
+}
+
+model EmployeeOrderItem {
+  id                String @id @default(cuid())
+  orderId           String
+  productId         String
+  productName       String
+  variantId         String
+  variantName       String?
+  quantity          Int
+  unitPriceCents    Int
+  totalPriceCents   Int
+  order             EmployeeOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model WebhookEvent {
+  id          String @id
+  type        String
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id          String @id @default(cuid())
+  adminUserId String?
+  employeeId  String?
+  action      String
+  oldValue    Json?
+  newValue    Json?
+  adminUser   Employee? @relation("AuditEmployee", fields: [adminUserId], references: [id])
+  employee    Employee? @relation("AuditSubject", fields: [employeeId], references: [id])
+  createdAt   DateTime @default(now())
+}
