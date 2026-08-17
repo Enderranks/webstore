@@ -1,0 +1,24 @@
+name: Deploy employee store
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  restart-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restart Underline Systems server
+        env:
+          PANEL_URL: https://underline.systems
+          SERVER_ID: a9f8f05b-b7a4-49bb-a3b2-4a338adac7e4
+          API_KEY: ${{ secrets.PTERODACTYL_API_KEY }}
+        run: |
+          test -n "$API_KEY"
+          curl --fail-with-body --silent --show-error \
+            -X POST "$PANEL_URL/api/client/servers/$SERVER_ID/power" \
+            -H "Authorization: Bearer $API_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Accept: Application/vnd.pterodactyl.v1+json" \
+            --data '{"signal":"restart"}'
