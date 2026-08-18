@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 const lookupSchema = z.object({
   employeeId: z.string().trim().min(1),
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const parsed = lookupSchema.safeParse(await request.json());
     if (!parsed.success) return Response.json({ error: "Enter a valid employee ID and company email." }, { status: 400 });
 
-    const employee = await prisma.employee.findFirst({
+    const employee = await getPrisma().employee.findFirst({
       where: { employeeId: parsed.data.employeeId, email: parsed.data.companyEmail.toLowerCase() },
       include: { allowances: { orderBy: { createdAt: "desc" }, take: 1 } },
     });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 const employeeSchema = z.object({
   employeeId: z.string().trim().min(1),
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   const parsed = payloadSchema.safeParse(await request.json());
   if (!parsed.success) return Response.json({ error: "Invalid employee payload", details: parsed.error.flatten() }, { status: 400 });
   const result = { imported: 0, deactivated: 0 };
+  const prisma = getPrisma();
   for (const row of parsed.data.rows) {
     const handle = row.team.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const team = await prisma.team.upsert({ where: { handle }, update: { name: row.team }, create: { name: row.team, handle } });
