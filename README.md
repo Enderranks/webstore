@@ -11,7 +11,7 @@ Initial Next.js foundation for the private Underline merchandise portal.
 - Strict cart allowance lock with server-side validation at `/api/cart/validate`
 - Protected Excel sync endpoint at `/api/integrations/excel/sync`
 - Excel used-budget write-back hook through Power Automate
-- Prisma/PostgreSQL schema for employees, teams, departments, allowance ledger, carts, orders, webhook events, and audit logs
+- Prisma/MySQL schema for employees, teams, departments, allowance ledger, carts, orders, webhook events, and audit logs
 - `.env.example` with the required integration variables
 
 ## Run locally
