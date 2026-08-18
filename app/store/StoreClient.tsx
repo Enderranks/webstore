@@ -1,20 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FourthwallProduct } from "@/lib/fourthwall";
-
-const REMAINING_ALLOWANCE_CENTS = 7500;
+import { readEmployeeSession, type EmployeeSession } from "../EmployeeAccess";
 
 export default function StoreClient({ products }: { products: FourthwallProduct[] }) {
   const [cart, setCart] = useState<Array<{ product: FourthwallProduct; priceCents: number }>>([]);
+  const [session, setSession] = useState<EmployeeSession | null>(null);
   const [message, setMessage] = useState("");
+  useEffect(() => setSession(readEmployeeSession()), []);
   const total = useMemo(() => cart.reduce((sum, item) => sum + item.priceCents, 0), [cart]);
-  const remaining = REMAINING_ALLOWANCE_CENTS - total;
+  const remaining = (session?.remainingCents ?? 0) - total;
 
   function add(product: FourthwallProduct) {
+    if (!session) {
+      setMessage("Verify your employee ID and company email on the dashboard first.");
+      return;
+    }
     const priceCents = Math.round((product.variants?.[0]?.unitPrice?.value || 0) * 100);
-    if (total + priceCents > REMAINING_ALLOWANCE_CENTS) {
-      setMessage("That item would exceed your remaining $75.00 allowance.");
+    if (total + priceCents > (session?.remainingCents ?? 0)) {
+      setMessage("That item would exceed your remaining allowance.");
       return;
     }
     setCart([...cart, { product, priceCents }]);
