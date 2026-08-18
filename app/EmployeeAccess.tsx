@@ -45,10 +45,14 @@ export default function EmployeeAccess() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId, companyEmail }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to verify employee.");
-      window.localStorage.setItem(SESSION_KEY, JSON.stringify(data));
-      setSession(data);
+      const raw = await response.text();
+      let data: { error?: string } | EmployeeSession = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { /* handled by the friendly fallback below */ }
+      const errorMessage = typeof data === "object" && data && "error" in data ? data.error : undefined;
+      if (!response.ok) throw new Error(errorMessage || "Unable to verify employee.");
+      const employee = data as EmployeeSession;
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(employee));
+      setSession(employee);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to verify employee.");
     } finally {
